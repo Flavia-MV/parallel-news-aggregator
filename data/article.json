@@ -1,6 +1,20 @@
-{
-    "title": "Google",
-    "author": "John",
-    "url": "https://example.com",
-    "text": "Google announced a new technology."
-}
+[
+    {
+        "title": "Google",
+        "author": "John",
+        "url": "https://example.com/google",
+        "text": "Google announced a new technology."
+    },
+    {
+        "title": "Microsoft",
+        "author": "Pam",
+        "url": "https://example.com/microsoft",
+        "text": "Microsoft released a new software platform."
+    },
+    {
+        "title": "OpenAI",
+        "author": "Ann",
+        "url": "https://example.com/openai",
+        "text": "OpenAI presented a new artificial intelligence model."
+    }
+]
