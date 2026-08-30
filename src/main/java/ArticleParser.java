@@ -10,17 +10,10 @@ import java.nio.file.Files;
 public class ArticleParser {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public ArrayList<Article> parse(Path relativePath) {
-        ArrayList<Article> articles = null;
+    public ArrayList<Article> parse(Path relativePath) throws IOException{
 
-        try {
-            String content = Files.readString(relativePath);
-            articles = objectMapper.readValue(content, new TypeReference<ArrayList<Article>>() {});
+        String content = Files.readString(relativePath);
 
-        } catch (IOException e) {
-            System.out.println(e.getMessage());
-        }
-
-        return articles;
+        return objectMapper.readValue(content, new TypeReference<ArrayList<Article>>() {});
     }
 }

@@ -1,0 +1,14 @@
+[
+    {
+        "title": "Reuters Business",
+        "author": "Michael",
+        "url": "https://example.com/reuters-business",
+        "text": "Markets reacted positively to the latest economic data."
+    },
+    {
+        "title": "Reuters Science",
+        "author": "Sarah",
+        "url": "https://example.com/reuters-science",
+        "text": "Scientists announced a new research discovery."
+    }
+]

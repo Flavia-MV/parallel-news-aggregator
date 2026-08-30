@@ -1,0 +1,14 @@
+[
+    {
+        "title": "BBC World",
+        "author": "David",
+        "url": "https://example.com/bbc-world",
+        "text": "World leaders met today."
+    },
+    {
+        "title": "BBC Technology",
+        "author": "Emma",
+        "url": "https://example.com/bbc-tech",
+        "text": "New technology is changing the way people work."
+    }
+]
