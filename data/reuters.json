@@ -1,14 +1,16 @@
 [
     {
-        "title": "Reuters Business",
-        "author": "Michael",
-        "url": "https://example.com/reuters-business",
-        "text": "Markets reacted positively to the latest economic data."
+        "title": "Technology Markets Continue to Grow",
+        "author": "Michael Davis",
+        "url": "https://news.example.com/tech-markets",
+        "text": "Technology markets continued their growth during the latest quarter.",
+        "publishedAt": "2026-08-29T16:45:00"
     },
     {
-        "title": "Reuters Science",
-        "author": "Sarah",
-        "url": "https://example.com/reuters-science",
-        "text": "Scientists announced a new research discovery."
+        "title": "Global Technology Investment Rises",
+        "author": "Laura Miller",
+        "url": "https://news.example.com/tech-investment",
+        "text": "Global investment in technology increased significantly this year.",
+        "publishedAt": "2026-08-28T09:30:00"
     }
 ]

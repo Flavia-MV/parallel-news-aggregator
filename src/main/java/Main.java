@@ -14,7 +14,8 @@ public class Main {
         sources.add(bbc);
         sources.add(reuters);
 
-        NewsAggregator aggregator = new NewsAggregator();
+        ArticleParser parser = new ArticleParser();
+        NewsAggregator aggregator = new NewsAggregator(parser);
 
         long start = System.nanoTime();
         ArrayList<Article> aggregatedArticles = aggregator.aggregate(sources);
@@ -22,5 +23,7 @@ public class Main {
         long duration = end- start;
         System.out.println(duration);
         System.out.println(aggregatedArticles.size());
+
+        
     }   
 }

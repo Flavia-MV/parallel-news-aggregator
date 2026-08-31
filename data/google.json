@@ -1,14 +1,16 @@
 [
     {
-        "title": "Google",
-        "author": "John",
-        "url": "https://example.com/google",
-        "text": "Google announced a new technology."
+        "title": "Google Announces New AI Technology",
+        "author": "John Smith",
+        "url": "https://news.example.com/google-ai",
+        "text": "Google announced a new artificial intelligence technology.",
+        "publishedAt": "2026-08-31T14:30:00"
     },
     {
-        "title": "Android",
-        "author": "Alice",
-        "url": "https://example.com/android",
-        "text": "Android received a new update."
+        "title": "Google Expands Cloud Services",
+        "author": "Emma Wilson",
+        "url": "https://news.example.com/google-cloud",
+        "text": "Google announced an expansion of its cloud services.",
+        "publishedAt": "2026-08-30T10:15:00"
     }
 ]

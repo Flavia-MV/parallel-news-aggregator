@@ -1,14 +1,16 @@
 [
     {
-        "title": "BBC World",
-        "author": "David",
-        "url": "https://example.com/bbc-world",
-        "text": "World leaders met today."
+        "title": "Google AI Technology Makes Headlines",
+        "author": "James Brown",
+        "url": "https://news.example.com/google-ai",
+        "text": "Google's latest artificial intelligence technology is attracting global attention.",
+        "publishedAt": "2026-08-31T15:00:00"
     },
     {
-        "title": "BBC Technology",
-        "author": "Emma",
-        "url": "https://example.com/bbc-tech",
-        "text": "New technology is changing the way people work."
+        "title": "New Economic Report Released",
+        "author": "Sarah Johnson",
+        "url": "https://news.example.com/economy-report",
+        "text": "A new economic report was released today.",
+        "publishedAt": "2026-08-31T12:00:00"
     }
 ]
