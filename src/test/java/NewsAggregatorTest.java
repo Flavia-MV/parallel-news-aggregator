@@ -109,4 +109,45 @@ public class NewsAggregatorTest {
         assertNotNull(result);
         assertEquals(0, result.size());
     }
+
+    @Test
+    void compareSequentialAndParallel() throws Exception {
+        ArrayList<NewsSource> sources = new ArrayList<>();
+
+        NewsSource google = new NewsSource("Google", Paths.get("data/google.json"));
+        NewsSource bbc = new NewsSource("BBC", Paths.get("data/bbc.json"));
+        NewsSource reuters = new NewsSource("Reuters", Paths.get("data/reuters.json"));
+
+        sources.add(google);
+        sources.add(bbc);
+        sources.add(reuters);
+
+        ArticleParser parser = mock(ArticleParser.class);
+        when(parser.parse(google.getPath())).thenAnswer(invocation -> {
+            Thread.sleep(1000);
+            return new ArrayList<>();
+        });
+        when(parser.parse(bbc.getPath())).thenAnswer(invocation -> {
+            Thread.sleep(1000);
+            return new ArrayList<>();
+        });
+        when(parser.parse(reuters.getPath())).thenAnswer(invocation -> {
+            Thread.sleep(1000);
+            return new ArrayList<>();
+        });
+
+        long start = System.nanoTime();
+        for (NewsSource source:sources) {
+            parser.parse(source.getPath());
+        }
+        long sequentialTime = System.nanoTime() - start;
+        System.out.println("Sequential: " + sequentialTime / 1_000_000 + " ms");
+        assertEquals(3, sources.size());
+
+        NewsAggregator aggregator = new NewsAggregator(parser);
+        start = System.nanoTime();
+        aggregator.aggregate(sources);
+        long parallelTime = System.nanoTime() - start;
+        System.out.println("Parallel: " + parallelTime / 1_000_000 + " ms");
+    }
 }
