@@ -6,6 +6,8 @@ import java.util.ArrayList;
 import org.junit.jupiter.api.Test;
 
 import com.flavia.newsaggregator.model.Article;
+import com.flavia.newsaggregator.parser.ArticleParser;
+import com.flavia.newsaggregator.source.NewsSource;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;

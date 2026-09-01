@@ -13,6 +13,8 @@ import java.util.Comparator;
 import java.util.concurrent.TimeUnit;
 
 import com.flavia.newsaggregator.model.Article;
+import com.flavia.newsaggregator.parser.ArticleParser;
+import com.flavia.newsaggregator.source.NewsSource;
 
 public class NewsAggregator {
     private final ArticleParser parser;
