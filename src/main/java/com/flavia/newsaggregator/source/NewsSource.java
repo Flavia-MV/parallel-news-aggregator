@@ -1,3 +1,4 @@
+package com.flavia.newsaggregator.source;
 import java.nio.file.Path;
 
 public class NewsSource {

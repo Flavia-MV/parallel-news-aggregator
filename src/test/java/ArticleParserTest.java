@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import org.junit.jupiter.api.Test;
 
 import com.flavia.newsaggregator.model.Article;
+import com.flavia.newsaggregator.parser.ArticleParser;
 
 public class ArticleParserTest {
     @Test

@@ -1,3 +1,4 @@
+package com.flavia.newsaggregator.aggregator;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.concurrent.ExecutorService;

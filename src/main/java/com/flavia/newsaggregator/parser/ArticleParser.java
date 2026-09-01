@@ -1,3 +1,4 @@
+package com.flavia.newsaggregator.parser;
 import java.nio.file.Path;
 import java.util.ArrayList;
 

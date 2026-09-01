@@ -1,7 +1,11 @@
+package com.flavia.newsaggregator;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 
+import com.flavia.newsaggregator.aggregator.NewsAggregator;
 import com.flavia.newsaggregator.model.Article;
+import com.flavia.newsaggregator.parser.ArticleParser;
+import com.flavia.newsaggregator.source.NewsSource;
 
 
 public class Main {
