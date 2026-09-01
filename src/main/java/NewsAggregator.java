@@ -12,6 +12,8 @@ import java.util.Set;
 import java.util.Comparator;
 import java.util.concurrent.TimeUnit;
 
+import com.flavia.newsaggregator.model.Article;
+
 public class NewsAggregator {
     private final ArticleParser parser;
 

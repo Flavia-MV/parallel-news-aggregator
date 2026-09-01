@@ -1,3 +1,4 @@
+package com.flavia.newsaggregator.model;
 import java.util.Objects;
 import java.time.LocalDateTime;
 

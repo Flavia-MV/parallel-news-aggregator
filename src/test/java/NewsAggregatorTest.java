@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.ArrayList;
 import org.junit.jupiter.api.Test;
 
+import com.flavia.newsaggregator.model.Article;
+
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 

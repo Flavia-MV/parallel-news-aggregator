@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import java.time.LocalDateTime;
 import org.junit.jupiter.api.Test;
 
+import com.flavia.newsaggregator.model.Article;
+
 public class ArticleTest {
     @Test
     void articleWithSameUrlShouldBeEqual() {

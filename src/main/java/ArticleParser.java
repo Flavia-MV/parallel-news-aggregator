@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.flavia.newsaggregator.model.Article;
 
 public class ArticleParser {
     private final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());

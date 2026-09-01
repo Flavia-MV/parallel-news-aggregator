@@ -1,6 +1,8 @@
 import java.nio.file.Paths;
 import java.util.ArrayList;
 
+import com.flavia.newsaggregator.model.Article;
+
 
 public class Main {
     public static void main(String[] args) {

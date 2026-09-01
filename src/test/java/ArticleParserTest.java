@@ -7,6 +7,8 @@ import java.util.ArrayList;
 
 import org.junit.jupiter.api.Test;
 
+import com.flavia.newsaggregator.model.Article;
+
 public class ArticleParserTest {
     @Test
     void shouldParseGoogleArticles() throws Exception {
