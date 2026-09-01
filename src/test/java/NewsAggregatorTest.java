@@ -1,5 +1,6 @@
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import org.junit.jupiter.api.Test;
@@ -8,10 +9,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
-import java.lang.reflect.Array;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
-import java.io.IOException;
 
 public class NewsAggregatorTest {
     
@@ -95,8 +94,8 @@ public class NewsAggregatorTest {
 
         ArrayList<Article> result = aggregator.aggregate(sources);
         assertEquals(2, result.size());
-        assertEquals(article1, result.get(0));
-        assertEquals(article2, result.get(1));   
+        assertTrue(result.contains(article1));
+        assertTrue(result.contains(article2));  
     }
    
     @Test 

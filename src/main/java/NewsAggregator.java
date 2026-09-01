@@ -4,8 +4,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.concurrent.CompletionService;
+import java.util.concurrent.ExecutorCompletionService;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.Comparator;
@@ -25,29 +25,39 @@ public class NewsAggregator {
         }
 
         ExecutorService executor = Executors.newFixedThreadPool(Math.min(3, sources.size()));
-        Map<NewsSource, Future<ArrayList<Article>>> futures = new HashMap<>();
+        CompletionService<ProcessingResult> completionService = new ExecutorCompletionService<>(executor);
         Set<Article> uniqueArticles = new LinkedHashSet<>();
 
         try {
             for (NewsSource source:sources) {
-                Callable<ArrayList<Article>> task = () -> {
-                    return parser.parse(source.getPath());
+                Callable<ProcessingResult> task = () -> {
+                    try {
+                         ArrayList<Article> articles = parser.parse(source.getPath());
+                        return new ProcessingResult(source, articles, null);
+                    } catch (Exception e) {
+                        return new ProcessingResult(source, null, e);
+                    }
                 };
-                Future<ArrayList<Article>> future = executor.submit(task);
-                futures.put(source, future);
+                completionService.submit(task);
             }
 
-            for (Map.Entry<NewsSource, Future<ArrayList<Article>>> entry:futures.entrySet()) {
-                NewsSource source = entry.getKey();
-                Future<ArrayList<Article>> future = entry.getValue();
+            for (int i = 0; i < sources.size(); i++) {
 
                 try {
-                    ArrayList<Article> sourceArticles = future.get();
-                    uniqueArticles.addAll(sourceArticles);
+                    Future<ProcessingResult> future = completionService.take();
+                    ProcessingResult  result = future.get();
+
+                    if (result.error != null) {
+                        System.out.println("Failed to process source: " + result.source.getName());
+                        System.out.println("Reason: " + result.error);
+                    } else {
+                        uniqueArticles.addAll(result.articles);
+                    }
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
+                    break;
                 } catch (ExecutionException e) {
-                    System.out.println("Failed to process source: " + source.getName());
+                    System.out.println("Failed to process source");
                     System.out.println("Reason: " + e.getCause());
                 }
             }
@@ -60,5 +70,17 @@ public class NewsAggregator {
         aggregatedArticles.sort(Comparator.comparing((Article article) -> article.getPublishedAt()).reversed());
 
         return aggregatedArticles;
+    }
+
+    private static class ProcessingResult {
+        private final NewsSource source;
+        private final ArrayList<Article> articles;
+        private final Exception error;
+
+        ProcessingResult(NewsSource source, ArrayList<Article> articles, Exception error) {
+            this.source = source;
+            this.articles = articles;
+            this.error =error;
+        }
     }
 }
