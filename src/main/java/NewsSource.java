@@ -1,8 +1,8 @@
 import java.nio.file.Path;
 
 public class NewsSource {
-    private String name;
-    private Path path;
+    private final String name;
+    private final Path path;
 
     public NewsSource(String name, Path path) {
         this.name = name;

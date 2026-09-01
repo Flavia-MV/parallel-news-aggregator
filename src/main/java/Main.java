@@ -1,4 +1,3 @@
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 
@@ -20,9 +19,9 @@ public class Main {
         long start = System.nanoTime();
         ArrayList<Article> aggregatedArticles = aggregator.aggregate(sources);
         long end = System.nanoTime();
-        long duration = end- start;
-        System.out.println(duration);
-        System.out.println(aggregatedArticles.size());
+        long durationMs = (end- start) / 1_000_000;
+        System.out.println("Aggregation completed in: " + durationMs + " ms");
+        System.out.println("Articles aggregated: " + aggregatedArticles.size());
 
         
     }   
