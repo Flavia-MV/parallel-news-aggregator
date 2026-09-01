@@ -10,6 +10,7 @@ import java.util.concurrent.ExecutorCompletionService;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.Comparator;
+import java.util.concurrent.TimeUnit;
 
 public class NewsAggregator {
     private final ArticleParser parser;
@@ -42,12 +43,24 @@ public class NewsAggregator {
                 completionService.submit(task);
             }
 
+            long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+
             for (int i = 0; i < sources.size(); i++) {
 
-                try {
-                    Future<ProcessingResult> future = completionService.take();
-                    ProcessingResult  result = future.get();
+                long remainingTime = deadline - System.nanoTime();
+                if (remainingTime <= 0) {
+                    System.out.println("Aggregation timed out.");
+                    break;
+                }
 
+                try {
+                    Future<ProcessingResult> future = completionService.poll(remainingTime, TimeUnit.NANOSECONDS);
+                    if (future == null) {
+                        System.out.println("Aggregation timed out.");
+                        break;
+                    }
+                    
+                    ProcessingResult result = future.get();
                     if (result.error != null) {
                         System.out.println("Failed to process source: " + result.source.getName());
                         System.out.println("Reason: " + result.error);
@@ -63,7 +76,7 @@ public class NewsAggregator {
                 }
             }
         } finally {
-            executor.shutdown();
+            executor.shutdownNow();
         }
         
 

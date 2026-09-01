@@ -175,4 +175,31 @@ public class NewsAggregatorTest {
         assertEquals(articleWithoutDate, result.get(1));
 
     }
+
+    @Test
+    void shouldTimeoutWhenSourceTakesTooLong() throws Exception {
+        NewsSource source = new NewsSource("Slow Source", Paths.get("data/slow.json"));
+
+        ArticleParser parser = mock(ArticleParser.class);
+
+        when(parser.parse(source.getPath())).thenAnswer(invocation -> {
+            Thread.sleep(10_000);
+            return new ArrayList<>();
+        });
+
+        NewsAggregator aggregator = new NewsAggregator(parser);
+
+        ArrayList<NewsSource> sources = new ArrayList<>();
+        sources.add(source);
+
+        long start = System.nanoTime();
+
+        ArrayList<Article> result = aggregator.aggregate(sources);
+
+        long duration = System.nanoTime() - start;
+
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+        assertTrue(duration < 7_000_000_000L, "Aggregation should stop after the timeout");
+    }
 }
