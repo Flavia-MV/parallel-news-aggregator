@@ -17,7 +17,11 @@ import com.flavia.newsaggregator.model.Article;
 import com.flavia.newsaggregator.parser.ArticleParser;
 import com.flavia.newsaggregator.source.NewsSource;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class NewsAggregator {
+    private static final Logger logger = LoggerFactory.getLogger(NewsAggregator.class);
     private final ArticleParser parser;
 
     public NewsAggregator(ArticleParser parser) {
@@ -54,30 +58,29 @@ public class NewsAggregator {
 
                 long remainingTime = deadline - System.nanoTime();
                 if (remainingTime <= 0) {
-                    System.out.println("Aggregation timed out.");
+                    logger.warn("Aggregation timed out before all sources completed.");
                     break;
                 }
 
                 try {
                     Future<ProcessingResult> future = completionService.poll(remainingTime, TimeUnit.NANOSECONDS);
                     if (future == null) {
-                        System.out.println("Aggregation timed out.");
+                        logger.warn("Aggregation timed out before all sources completed.");
                         break;
                     }
                     
                     ProcessingResult result = future.get();
                     if (result.error != null) {
-                        System.out.println("Failed to process source: " + result.source.getName());
-                        System.out.println("Reason: " + result.error);
+                        logger.error("Failed to process source: {}", result.source.getName(), result.error);
                     } else {
                         uniqueArticles.addAll(result.articles);
                     }
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
+                    logger.warn("Aggregation interrupted", e);
                     break;
                 } catch (ExecutionException e) {
-                    System.out.println("Failed to process source");
-                    System.out.println("Reason: " + e.getCause());
+                    logger.error("Unexpected failure while processing source", e.getCause());
                 }
             }
         } finally {
