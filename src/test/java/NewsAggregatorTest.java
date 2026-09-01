@@ -149,4 +149,30 @@ public class NewsAggregatorTest {
         long parallelTime = System.nanoTime() - start;
         System.out.println("Parallel: " + parallelTime / 1_000_000 + " ms");
     }
+
+    @Test
+    void ShouldPlaceArticleWithoutPublishedAtLast() throws Exception {
+        Article articleWithDate = new Article("News with date", "John", "https://example.com/dated", "Text", LocalDateTime.of(2026, 8, 31, 14, 0));
+        Article articleWithoutDate = new Article("News without date", "Emma", "https://example.com/undated", "Texr", null);
+
+        ArrayList<Article> articles = new ArrayList<>();
+        articles.add(articleWithoutDate);
+        articles.add(articleWithDate);
+
+        NewsSource source = new NewsSource("Test Source", Paths.get("data/test.json"));
+
+        ArticleParser parser = mock(ArticleParser.class);
+        when(parser.parse(source.getPath())).thenReturn(articles);
+
+        NewsAggregator aggregator = new NewsAggregator(parser);
+
+        ArrayList<NewsSource> sources = new ArrayList<>();
+        sources.add(source);
+
+        ArrayList<Article> result = new ArrayList<>(aggregator.aggregate(sources));
+
+        assertEquals(articleWithDate, result.get(0));
+        assertEquals(articleWithoutDate, result.get(1));
+
+    }
 }

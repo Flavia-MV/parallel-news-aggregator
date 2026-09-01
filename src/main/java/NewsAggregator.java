@@ -1,3 +1,4 @@
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -34,7 +35,7 @@ public class NewsAggregator {
                     try {
                          ArrayList<Article> articles = parser.parse(source.getPath());
                         return new ProcessingResult(source, articles, null);
-                    } catch (Exception e) {
+                    } catch (IOException e) {
                         return new ProcessingResult(source, null, e);
                     }
                 };
@@ -67,7 +68,7 @@ public class NewsAggregator {
         
 
         aggregatedArticles.addAll(uniqueArticles);
-        aggregatedArticles.sort(Comparator.comparing((Article article) -> article.getPublishedAt()).reversed());
+        aggregatedArticles.sort(Comparator.comparing(Article::getPublishedAt, Comparator.nullsLast(Comparator.reverseOrder())));
 
         return aggregatedArticles;
     }
