@@ -19,11 +19,16 @@ public class Main {
         NewsSource google = new LocalFileSource("Google", Paths.get("data/google.json"), parser);
         NewsSource bbc = new LocalFileSource("BBC", Paths.get("data/bbc.json"), parser);
         NewsSource reuters = new LocalFileSource("Reuters", Paths.get("data/reuters.json"), parser);
-        NewsSource rss = new RssNewsSource("Example RSS", new URL("https://feeds.bbci.co.uk/news/rss.xml"));
+        NewsSource bbcRss = new RssNewsSource("BBC RSS", new URL("https://feeds.bbci.co.uk/news/rss.xml"));
+        NewsSource guardianRss = new RssNewsSource("The Guardian RSS", new URL("https://www.theguardian.com/world/rss"));
+        NewsSource arsTechincaRss = new RssNewsSource("Ars Technica RSS", new URL("https://feeds.arstechnica.com/arstechnica/index"));
+
         sources.add(google);
         sources.add(bbc);
         sources.add(reuters);
-        sources.add(rss);
+        sources.add(bbcRss);
+        sources.add(guardianRss);
+        sources.add(arsTechincaRss);
 
         NewsAggregator aggregator = new NewsAggregator();
 
