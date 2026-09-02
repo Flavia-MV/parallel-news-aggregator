@@ -1,11 +1,16 @@
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
 import com.flavia.newsaggregator.model.Article;
 import com.flavia.newsaggregator.source.RssNewsSource;
 import com.sun.net.httpserver.HttpServer;
 import org.junit.jupiter.api.Test;
+
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.concurrent.atomic.AtomicInteger;
 
 
 class RssNewsSourceTest {
@@ -74,5 +79,28 @@ class RssNewsSourceTest {
         RssNewsSource source = new RssNewsSource("Unavailable RSS", url);
 
         org.junit.jupiter.api.Assertions.assertThrows(java.io.IOException.class, source::fetch);
+    }
+
+    @Test
+    void retriesWhenRssSourceFails() throws Exception {
+        AtomicInteger requestCount = new AtomicInteger(0);
+
+        HttpServer server = HttpServer.create(new InetSocketAddress(0), 0);
+
+        server.createContext("/rss", exchange -> {
+            requestCount.incrementAndGet();
+            exchange.sendResponseHeaders(500, -1);
+            exchange.close();
+        });
+        server.start();
+
+        try {
+            URL url = new URL("http://localhost:" + server.getAddress().getPort() + "/rss");
+            RssNewsSource source = new RssNewsSource("Test RSS", url);
+            assertThrows(IOException.class, source::fetch);
+            assertEquals(3, requestCount.get());
+        } finally {
+            server.stop(0);
+        }
     }
 }
