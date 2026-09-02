@@ -2,20 +2,22 @@
 
 A Java application for aggregating and processing articles from multiple news sources concurrently.
 
-The project focuses on Java concurrency, modular design, exception handling, automated testing, and performance comparison between sequential and parallel execution.
+The project focuses on **Java concurrency, modular design, failure handling, automated testing, and performance comparison between sequential and parallel execution**.
 
 ## Overview
 
-The application reads articles from multiple JSON-based news sources and combines them into a single collection.
+The application aggregates articles from multiple news sources and combines them into a single collection.
 
-During aggregation, the application:
+The current implementation supports:
 
-* processes independent news sources concurrently;
-* handles failures from individual sources without interrupting the entire aggregation process;
-* removes duplicate articles based on their URL;
-* orders articles by publication time.
+* local JSON files through `LocalFileSource`;
+* real RSS feeds through `RssNewsSource`;
+* concurrent processing of independent sources;
+* failure isolation between sources;
+* duplicate removal based on article URL;
+* sorting by publication time.
 
-The current implementation uses local JSON files as data sources, allowing the project to run without external services or API credentials.
+The project is designed around the `NewsSource` interface, allowing new types of news sources to be added without modifying the aggregation logic.
 
 ## Architecture
 
@@ -23,13 +25,81 @@ The application is organized around several focused components.
 
 ### `Article`
 
-Represents a news article and contains its title, author, URL, text, and publication time.
+Represents a news article and contains:
 
-Articles are identified by their URL. The `equals()` and `hashCode()` methods are implemented based on the URL, allowing duplicate articles to be removed using a `Set`.
+* title;
+* author;
+* URL;
+* text;
+* publication time.
+
+Articles are identified by their URL. The `equals()` and `hashCode()` methods are based on the URL, allowing duplicate articles to be removed using a `Set`.
 
 ### `NewsSource`
 
-Represents a news source through its name and the path of its corresponding data file.
+`NewsSource` is the main abstraction used by the aggregator.
+
+```java
+public interface NewsSource {
+
+    String getName();
+
+    ArrayList<Article> fetch() throws IOException;
+}
+```
+
+The aggregator depends on this interface rather than on a specific source implementation.
+
+Currently, two implementations are available:
+
+```text
+                 NewsSource
+                     │
+          ┌──────────┴──────────┐
+          │                     │
+ LocalFileSource          RssNewsSource
+          │                     │
+      JSON files            RSS feed
+```
+
+This makes it possible to introduce another source, such as an HTTP API, without changing `NewsAggregator`.
+
+For example, a future source could simply implement:
+
+```java
+public class ApiNewsSource implements NewsSource {
+
+    @Override
+    public String getName() {
+        return "News API";
+    }
+
+    @Override
+    public ArrayList<Article> fetch() throws IOException {
+        // Fetch and convert API data into Article objects
+    }
+}
+```
+
+The `NewsAggregator` can then process the new source through the same `NewsSource` interface.
+
+### `LocalFileSource`
+
+Provides articles from local JSON files.
+
+It uses `ArticleParser` to read and deserialize the file contents.
+
+Local sources are useful for:
+
+* deterministic tests;
+* offline development;
+* reproducible demonstrations.
+
+### `RssNewsSource`
+
+Fetches articles from a real RSS feed using the Rome RSS/Atom library.
+
+The RSS entries are converted into the common `Article` model, allowing RSS sources and local sources to be processed by the same aggregation pipeline.
 
 ### `ArticleParser`
 
@@ -41,12 +111,14 @@ Jackson is used for JSON processing, with `JavaTimeModule` providing support for
 
 Coordinates the aggregation process.
 
-For every configured source, a separate task is submitted to a fixed-size thread pool. The results are retrieved using `ExecutorCompletionService`.
+For every configured source, a separate task is submitted to a fixed-size thread pool.
+
+`ExecutorCompletionService` is used to retrieve completed tasks as they become available instead of waiting for sources in submission order.
 
 After processing the sources, the aggregator:
 
 1. collects successful results;
-2. handles sources that could not be processed;
+2. handles failures from individual sources;
 3. removes duplicate articles;
 4. sorts the resulting articles by publication time.
 
@@ -54,7 +126,7 @@ After processing the sources, the aggregator:
 
 The news sources are independent of each other, so their processing can be performed concurrently.
 
-The application uses a fixed-size thread pool:
+The application currently uses a fixed-size thread pool:
 
 ```java
 ExecutorService executor =
@@ -63,27 +135,27 @@ ExecutorService executor =
 
 Each source is processed by a `Callable<ProcessingResult>`.
 
-`ExecutorCompletionService` is used to retrieve completed tasks as they become available instead of waiting for sources in submission order.
+`ExecutorCompletionService` allows completed tasks to be processed as soon as they finish.
 
-This is useful when different sources require different amounts of processing time, since a completed source can be handled immediately without waiting for earlier tasks to finish.
+This is useful when sources have different processing times because a fast source does not have to wait for a slower source that was submitted earlier.
 
 ### Processing Flow
 
 ```text
-                 ┌── Source 1 ──┐
-                 │              │
-News Sources ────┼── Source 2 ──┼──> Aggregation
-                 │              │
-                 └── Source 3 ──┘
-                                  │
-                                  ▼
-                            Deduplication
-                                  │
-                                  ▼
-                               Sorting
-                                  │
-                                  ▼
-                         Final article list
+                    ┌── LocalFileSource ──┐
+                    │                     │
+News Sources ───────┼── LocalFileSource ──┼──> Concurrent Processing
+                    │                     │
+                    └── RssNewsSource ────┘
+                                              │
+                                              ▼
+                                        Deduplication
+                                              │
+                                              ▼
+                                           Sorting
+                                              │
+                                              ▼
+                                      Final article list
 ```
 
 ## Failure Handling
@@ -98,33 +170,33 @@ BBC        → failed
 Reuters    → successful
 ```
 
-The articles successfully retrieved from Google and Reuters are still returned.
+The successfully retrieved articles are still returned.
 
-`IOException` raised during parsing is captured for the individual source, allowing the remaining sources to continue processing.
+`IOException` raised while processing an individual source is captured and logged without preventing the remaining sources from being processed.
 
-This behavior is tested using Mockito to simulate a failed parser operation.
+This behavior is covered by automated tests using Mockito to simulate source failures.
 
 ## Deduplication
 
 Duplicate articles are identified using their URL.
 
-For example, if two sources contain articles with:
+For example, if two sources contain:
 
 ```text
 https://example.com/article
 ```
 
-they are considered the same article, even if their titles, authors, or text differ.
+they are considered the same article even if their titles, authors, or text differ.
 
-The aggregator uses a `LinkedHashSet<Article>` for deduplication while preserving insertion order before the final sorting step.
+The aggregator uses a `LinkedHashSet<Article>` for deduplication before converting the results back into a list.
 
-The equality contract is tested separately in `ArticleTest`.
+The equality and hash code contract is tested separately in `ArticleTest`.
 
 ## Sorting
 
 After aggregation and deduplication, articles are sorted by `publishedAt` in descending order, so the most recently published articles appear first.
 
-Articles without a publication time are handled explicitly and placed after articles with a valid publication time.
+Articles without a publication time are explicitly handled and placed after articles with a valid publication time.
 
 ```java
 aggregatedArticles.sort(
@@ -135,29 +207,41 @@ aggregatedArticles.sort(
 );
 ```
 
-This behavior is covered by an automated test.
+This behavior is covered by automated tests.
 
 ## Testing
 
 The project uses **JUnit 5** for automated testing and **Mockito** for mocking dependencies.
 
-The current test suite contains **10 tests** covering:
+The current test suite contains **13 tests** covering:
 
 * JSON parsing;
 * article field deserialization;
 * article equality and hash code behavior;
 * duplicate article removal;
 * sorting by publication time;
-* handling a failed news source;
+* handling failed news sources;
 * handling articles without a publication time;
 * aggregation with no sources;
-* comparison of sequential and parallel processing.
+* sequential versus parallel processing;
+* RSS feed parsing;
+* RSS source connection failures.
 
-`ArticleParser` is injected into `NewsAggregator`, which allows the parser to be replaced with a mock during testing.
+The RSS tests use a local HTTP server instead of relying on an external website, making the tests deterministic and independent of internet availability.
 
-This makes it possible to test the aggregation logic independently of file I/O.
+Run the complete test suite with:
 
-All tests are currently passing.
+```bash
+./mvnw test
+```
+
+On Windows:
+
+```powershell
+.\mvnw.cmd test
+```
+
+All tests currently pass.
 
 ## Performance Comparison
 
@@ -168,9 +252,9 @@ The benchmark uses a simulated one-second delay for each source to represent an 
 Example result:
 
 ```text
-Sequential: 3035 ms
-Parallel:   1012 ms
-Speedup:    3.00x
+Sequential: 3007 ms
+Parallel:   1006 ms
+Speedup:     2.99x
 ```
 
 With three independent sources and three worker threads, the parallel implementation completes the simulated workload in approximately the time required by the slowest individual task.
@@ -184,11 +268,7 @@ parallel-news-aggregator/
 │
 ├── .github/
 │   └── workflows/
-│       └── ...
-│
-├── .mvn/
-│   └── wrapper/
-│       └── maven-wrapper.properties
+│       └── ci.yml
 │
 ├── data/
 │   ├── article.json
@@ -198,19 +278,33 @@ parallel-news-aggregator/
 │
 ├── src/
 │   ├── main/
-│   │   └── java/
-│   │       ├── Article.java
-│   │       ├── ArticleParser.java
-│   │       ├── Benchmark.java
-│   │       ├── Main.java
-│   │       ├── NewsAggregator.java
-│   │       └── NewsSource.java
+│   │   ├── java/
+│   │   │   └── com/
+│   │   │       └── flavia/
+│   │   │           └── newsaggregator/
+│   │   │               ├── aggregator/
+│   │   │               │   └── NewsAggregator.java
+│   │   │               ├── model/
+│   │   │               │   └── Article.java
+│   │   │               ├── parser/
+│   │   │               │   └── ArticleParser.java
+│   │   │               └── source/
+│   │   │                   ├── LocalFileSource.java
+│   │   │                   ├── NewsSource.java
+│   │   │                   └── RssNewsSource.java
+│   │   │
+│   │   │   ├── Benchmark.java
+│   │   │   └── Main.java
+│   │   │
+│   │   └── resources/
+│   │       └── logback.xml
 │   │
 │   └── test/
 │       └── java/
 │           ├── ArticleParserTest.java
 │           ├── ArticleTest.java
-│           └── NewsAggregatorTest.java
+│           ├── NewsAggregatorTest.java
+│           └── RssNewsSourceTest.java
 │
 ├── .gitignore
 ├── mvnw
@@ -223,10 +317,14 @@ parallel-news-aggregator/
 * **Java 17**
 * **Maven**
 * **Jackson**
+* **Rome RSS/Atom**
 * **JUnit 5**
 * **Mockito**
+* **SLF4J**
+* **Logback**
 * **Java Concurrency API**
 * **GitHub Actions**
+* **JaCoCo**
 
 ## Running the Project
 
@@ -251,17 +349,24 @@ On Linux/macOS:
 ./mvnw test
 ```
 
-The current test suite consists of 10 tests.
-
 ### Run the Application
 
-Run `Main.java` from the IDE or use the configured Java environment.
+Run `Main.java` from the IDE.
 
-The application reads the sample news sources from the `data/` directory and aggregates their articles.
+The application currently combines local JSON fixtures with a real RSS feed and processes them through the same `NewsAggregator` pipeline.
+
+Example output:
+
+```text
+Aggregation completed in: 1032 ms
+Articles aggregated: 35
+```
+
+The application also prints the aggregated articles ordered by publication time.
 
 ### Run the Benchmark
 
-Run `Benchmark.java` to compare sequential and parallel execution using the simulated workload.
+Run `Benchmark.java` to compare sequential and parallel execution using the simulated I/O workload.
 
 ## Continuous Integration
 
@@ -273,12 +378,13 @@ The CI workflow uses Java 17 and Maven to verify that the project builds success
 
 Possible extensions include:
 
-* configurable news sources;
-* integration with real news APIs or RSS feeds;
+* retry and exponential backoff for temporary RSS/network failures;
+* multiple real RSS sources;
+* configurable per-source timeouts;
 * configurable concurrency limits;
-* timeouts for sources that become unresponsive;
-* structured application logging;
+* external application configuration;
+* improved benchmark methodology using real I/O workloads;
 * additional integration tests;
-* improved benchmark methodology;
-* configuration through external files or environment variables;
-* support for larger numbers of concurrent sources.
+* Docker support;
+* JaCoCo coverage reporting in CI;
+* CLI configuration for selecting news sources.
