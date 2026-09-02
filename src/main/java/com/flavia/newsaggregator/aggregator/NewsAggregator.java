@@ -14,7 +14,6 @@ import java.util.Comparator;
 import java.util.concurrent.TimeUnit;
 
 import com.flavia.newsaggregator.model.Article;
-import com.flavia.newsaggregator.parser.ArticleParser;
 import com.flavia.newsaggregator.source.NewsSource;
 
 import org.slf4j.Logger;
@@ -22,12 +21,6 @@ import org.slf4j.LoggerFactory;
 
 public class NewsAggregator {
     private static final Logger logger = LoggerFactory.getLogger(NewsAggregator.class);
-    private final ArticleParser parser;
-
-    public NewsAggregator(ArticleParser parser) {
-        this.parser = parser;
-    }
-
 
     public ArrayList<Article> aggregate(ArrayList<NewsSource> sources) {
         ArrayList<Article> aggregatedArticles = new ArrayList<>();
@@ -43,7 +36,7 @@ public class NewsAggregator {
             for (NewsSource source:sources) {
                 Callable<ProcessingResult> task = () -> {
                     try {
-                         ArrayList<Article> articles = parser.parse(source.getPath());
+                         ArrayList<Article> articles = source.fetch();
                         return new ProcessingResult(source, articles, null);
                     } catch (IOException e) {
                         return new ProcessingResult(source, null, e);

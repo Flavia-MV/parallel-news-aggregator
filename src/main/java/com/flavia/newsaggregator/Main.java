@@ -6,21 +6,23 @@ import com.flavia.newsaggregator.aggregator.NewsAggregator;
 import com.flavia.newsaggregator.model.Article;
 import com.flavia.newsaggregator.parser.ArticleParser;
 import com.flavia.newsaggregator.source.NewsSource;
+import com.flavia.newsaggregator.source.LocalFileSource;
 
 
 public class Main {
     public static void main(String[] args) {
        
         ArrayList<NewsSource> sources = new ArrayList<>();
-        NewsSource google = new NewsSource("Google", Paths.get("data/google.json"));
-        NewsSource bbc = new NewsSource("BBC", Paths.get("data/bbc.json"));
-        NewsSource reuters = new NewsSource("Reuters", Paths.get("data/reuters.json"));
+
+        ArticleParser parser = new ArticleParser();
+        NewsSource google = new LocalFileSource("Google", Paths.get("data/google.json"), parser);
+        NewsSource bbc = new LocalFileSource("BBC", Paths.get("data/bbc.json"), parser);
+        NewsSource reuters = new LocalFileSource("Reuters", Paths.get("data/reuters.json"), parser);
         sources.add(google);
         sources.add(bbc);
         sources.add(reuters);
 
-        ArticleParser parser = new ArticleParser();
-        NewsAggregator aggregator = new NewsAggregator(parser);
+        NewsAggregator aggregator = new NewsAggregator();
 
         long start = System.nanoTime();
         ArrayList<Article> aggregatedArticles = aggregator.aggregate(sources);

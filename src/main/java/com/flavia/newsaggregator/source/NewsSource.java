@@ -1,21 +1,11 @@
 package com.flavia.newsaggregator.source;
-import java.nio.file.Path;
 
-public class NewsSource {
-    private final String name;
-    private final Path path;
+import com.flavia.newsaggregator.model.Article;
+import java.io.IOException;
+import java.util.ArrayList;
 
-    public NewsSource(String name, Path path) {
-        this.name = name;
-        this.path = path;
-    }
+public interface NewsSource {
+    String getName();
 
-    public String getName() {
-        return this.name;
-    }
-
-    public Path getPath() {
-        return this.path;
-    }
-
+    ArrayList<Article> fetch() throws IOException;
 }

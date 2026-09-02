@@ -9,6 +9,7 @@ import com.flavia.newsaggregator.aggregator.NewsAggregator;
 import com.flavia.newsaggregator.model.Article;
 import com.flavia.newsaggregator.parser.ArticleParser;
 import com.flavia.newsaggregator.source.NewsSource;
+import com.flavia.newsaggregator.source.LocalFileSource;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -30,14 +31,14 @@ public class NewsAggregatorTest {
         ArrayList<Article> bbcArticles = new ArrayList<>();
         bbcArticles.add(article2);
 
-        NewsSource google = new NewsSource("Google", Paths.get("data/google.json"));
-        NewsSource bbc = new NewsSource("BBC", Paths.get("data/bbc.json"));
-
         ArticleParser parser = mock(ArticleParser.class);
-        when(parser.parse(google.getPath())).thenReturn(googleArticles);
-        when(parser.parse(bbc.getPath())).thenReturn(bbcArticles);
+        NewsSource google = new LocalFileSource("Google", Paths.get("data/google.json"), parser);
+        NewsSource bbc = new LocalFileSource("BBC", Paths.get("data/bbc.json"), parser);
 
-        NewsAggregator aggregator = new NewsAggregator(parser);
+        when(parser.parse(Paths.get("data/google.json"))).thenReturn(googleArticles);
+        when(parser.parse(Paths.get("data/bbc.json"))).thenReturn(bbcArticles);
+
+        NewsAggregator aggregator = new NewsAggregator();
         ArrayList<NewsSource> sources = new ArrayList<>();
         sources.add(google);
         sources.add(bbc);
@@ -57,11 +58,11 @@ public class NewsAggregatorTest {
         articles.add(article2);
         articles.add(article3);
 
-        NewsSource google = new NewsSource("Google", Paths.get("data/google.json"));
         ArticleParser parser = mock(ArticleParser.class);
-        when(parser.parse(google.getPath())).thenReturn(articles);
+        NewsSource google = new LocalFileSource("Google", Paths.get("data/google.json"), parser);
+        when(parser.parse(Paths.get("data/google.json"))).thenReturn(articles);
 
-        NewsAggregator aggregator = new NewsAggregator(parser);
+        NewsAggregator aggregator = new NewsAggregator();
         ArrayList<NewsSource> sources = new ArrayList<>();
         sources.add(google);
         ArrayList<Article> result = aggregator.aggregate(sources);
@@ -82,16 +83,16 @@ public class NewsAggregatorTest {
         ArrayList<Article> reutersArticles = new ArrayList<>();
         reutersArticles.add(article2);
     
-        NewsSource google = new NewsSource("Google", Paths.get("data/google.json"));
-        NewsSource bbc = new NewsSource("BBC", Paths.get("data/bbc-invalid.json"));
-        NewsSource reuters = new NewsSource("Reuters", Paths.get("data/reuters.json"));
-
         ArticleParser parser = mock(ArticleParser.class);
-        when(parser.parse(google.getPath())).thenReturn(googleArticles);
-        when(parser.parse(reuters.getPath())).thenReturn(reutersArticles);
-        when(parser.parse(bbc.getPath())).thenThrow(new IOException("File not found"));
+        NewsSource google = new LocalFileSource("Google", Paths.get("data/google.json"), parser);
+        NewsSource bbc = new LocalFileSource("BBC", Paths.get("data/bbc-invalid.json"), parser);
+        NewsSource reuters = new LocalFileSource("Reuters", Paths.get("data/reuters.json"), parser);
 
-        NewsAggregator aggregator = new NewsAggregator(parser);
+        when(parser.parse(Paths.get("data/google.json"))).thenReturn(googleArticles);
+        when(parser.parse(Paths.get("data/reuters.json"))).thenReturn(reutersArticles);
+        when(parser.parse(Paths.get("data/bbc-invalid.json"))).thenThrow(new IOException("File not found"));
+
+        NewsAggregator aggregator = new NewsAggregator();
         ArrayList<NewsSource> sources = new ArrayList<>();
         sources.add(google);
         sources.add(bbc);
@@ -107,7 +108,7 @@ public class NewsAggregatorTest {
     void shouldReturnEmptyListWhenNoSourcesAreProvided() throws Exception {
         ArrayList<NewsSource> sources = new ArrayList<>();
         ArticleParser parser = mock(ArticleParser.class);
-        NewsAggregator aggregator = new NewsAggregator(parser);
+        NewsAggregator aggregator = new NewsAggregator();
         ArrayList<Article> result = aggregator.aggregate(sources);
 
         assertNotNull(result);
@@ -118,37 +119,37 @@ public class NewsAggregatorTest {
     void compareSequentialAndParallel() throws Exception {
         ArrayList<NewsSource> sources = new ArrayList<>();
 
-        NewsSource google = new NewsSource("Google", Paths.get("data/google.json"));
-        NewsSource bbc = new NewsSource("BBC", Paths.get("data/bbc.json"));
-        NewsSource reuters = new NewsSource("Reuters", Paths.get("data/reuters.json"));
+        ArticleParser parser = mock(ArticleParser.class);
+        NewsSource google = new LocalFileSource("Google", Paths.get("data/google.json"), parser);
+        NewsSource bbc = new LocalFileSource("BBC", Paths.get("data/bbc.json"), parser);
+        NewsSource reuters = new LocalFileSource("Reuters", Paths.get("data/reuters.json"), parser);
 
         sources.add(google);
         sources.add(bbc);
         sources.add(reuters);
 
-        ArticleParser parser = mock(ArticleParser.class);
-        when(parser.parse(google.getPath())).thenAnswer(invocation -> {
+        when(parser.parse(Paths.get("data/google.json"))).thenAnswer(invocation -> {
             Thread.sleep(1000);
             return new ArrayList<>();
         });
-        when(parser.parse(bbc.getPath())).thenAnswer(invocation -> {
+        when(parser.parse(Paths.get("data/bbc.json"))).thenAnswer(invocation -> {
             Thread.sleep(1000);
             return new ArrayList<>();
         });
-        when(parser.parse(reuters.getPath())).thenAnswer(invocation -> {
+        when(parser.parse(Paths.get("data/reuters.json"))).thenAnswer(invocation -> {
             Thread.sleep(1000);
             return new ArrayList<>();
         });
 
         long start = System.nanoTime();
         for (NewsSource source:sources) {
-            parser.parse(source.getPath());
+            source.fetch();
         }
         long sequentialTime = System.nanoTime() - start;
         System.out.println("Sequential: " + sequentialTime / 1_000_000 + " ms");
         assertEquals(3, sources.size());
 
-        NewsAggregator aggregator = new NewsAggregator(parser);
+        NewsAggregator aggregator = new NewsAggregator();
         start = System.nanoTime();
         aggregator.aggregate(sources);
         long parallelTime = System.nanoTime() - start;
@@ -164,12 +165,12 @@ public class NewsAggregatorTest {
         articles.add(articleWithoutDate);
         articles.add(articleWithDate);
 
-        NewsSource source = new NewsSource("Test Source", Paths.get("data/test.json"));
-
         ArticleParser parser = mock(ArticleParser.class);
-        when(parser.parse(source.getPath())).thenReturn(articles);
+        NewsSource source = new LocalFileSource("Test Source", Paths.get("data/test.json"), parser);
 
-        NewsAggregator aggregator = new NewsAggregator(parser);
+        when(parser.parse(Paths.get("data/test.json"))).thenReturn(articles);
+
+        NewsAggregator aggregator = new NewsAggregator();
 
         ArrayList<NewsSource> sources = new ArrayList<>();
         sources.add(source);
@@ -183,16 +184,16 @@ public class NewsAggregatorTest {
 
     @Test
     void shouldTimeoutWhenSourceTakesTooLong() throws Exception {
-        NewsSource source = new NewsSource("Slow Source", Paths.get("data/slow.json"));
-
         ArticleParser parser = mock(ArticleParser.class);
+        NewsSource source = new LocalFileSource("Slow Source", Paths.get("data/slow.json"), parser);
 
-        when(parser.parse(source.getPath())).thenAnswer(invocation -> {
+
+        when(parser.parse(Paths.get("data.slow.json"))).thenAnswer(invocation -> {
             Thread.sleep(10_000);
             return new ArrayList<>();
         });
 
-        NewsAggregator aggregator = new NewsAggregator(parser);
+        NewsAggregator aggregator = new NewsAggregator();
 
         ArrayList<NewsSource> sources = new ArrayList<>();
         sources.add(source);
