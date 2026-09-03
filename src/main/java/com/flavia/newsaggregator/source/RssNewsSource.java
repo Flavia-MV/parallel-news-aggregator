@@ -11,18 +11,26 @@ import java.util.ArrayList;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import java.io.InputStream;
+import java.net.URLConnection;
 
 public class RssNewsSource implements NewsSource{
     
     private final String name;
     private final URL url;
+    private final int timeoutMs;
     private static final Logger logger = LoggerFactory.getLogger(RssNewsSource.class);
     private static final int MAX_ATTEMPTS = 3;
     private static final long INITIAL_BACKOFF_MS = 500;
 
     public RssNewsSource(String name, URL url) {
+        this(name, url, 3000);
+    }
+
+    public RssNewsSource(String name, URL url, int timeoutMs) {
         this.name = name;
         this.url = url;
+        this.timeoutMs = timeoutMs;
     }
 
     @Override
@@ -65,25 +73,30 @@ public class RssNewsSource implements NewsSource{
 
         try {
             SyndFeedInput input = new SyndFeedInput();
+            URLConnection connection = url.openConnection();
+            connection.setConnectTimeout(timeoutMs);
+            connection.setReadTimeout(timeoutMs);
 
-            var feed = input.build(new XmlReader(url));
-
-            for (SyndEntry entry:feed.getEntries()) {
-                Article article = new Article(
-                    entry.getTitle(),
-                    entry.getAuthor(),
-                    entry.getLink(),
-                    entry.getDescription() != null
-                        ? entry.getDescription().getValue()
-                        : null,
-                    entry.getPublishedDate() != null
-                        ? entry.getPublishedDate()
-                            .toInstant()
-                            .atZone(java.time.ZoneId.systemDefault())
-                            .toLocalDateTime()
-                        : null
-                );
+            try (InputStream inputStream = connection.getInputStream()) {
+                var feed = input.build(new XmlReader(inputStream));
+            
+                for (SyndEntry entry:feed.getEntries()) {
+                    Article article = new Article(
+                        entry.getTitle(),
+                        entry.getAuthor(),
+                        entry.getLink(),
+                        entry.getDescription() != null
+                            ? entry.getDescription().getValue()
+                            : null,
+                        entry.getPublishedDate() != null
+                            ? entry.getPublishedDate()
+                                .toInstant()
+                                .atZone(java.time.ZoneId.systemDefault())
+                                .toLocalDateTime()
+                            : null
+                    );
                 articles.add(article);
+                }
             }
         } catch (Exception e) {
             throw new IOException("Failed to fetch RSS source: " + name, e);

@@ -5,6 +5,7 @@ import com.flavia.newsaggregator.model.Article;
 import com.flavia.newsaggregator.source.RssNewsSource;
 import com.sun.net.httpserver.HttpServer;
 import org.junit.jupiter.api.Test;
+import org.w3c.dom.html.HTMLOptGroupElement;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -99,6 +100,28 @@ class RssNewsSourceTest {
             RssNewsSource source = new RssNewsSource("Test RSS", url);
             assertThrows(IOException.class, source::fetch);
             assertEquals(3, requestCount.get());
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
+    void timeOutWhenRssSourceTakesTooLong() throws Exception {
+        HttpServer server = HttpServer.create(new InetSocketAddress(0), 0);
+        server.createContext("/rss", exchange -> {
+            try {
+                Thread.sleep(2000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            exchange.sendResponseHeaders(200,0 );
+            exchange.getResponseBody().close();
+        });
+        server.start();
+        try {
+            URL url = new URL("https://localhost:" + server.getAddress().getPort() + "/rss");
+            RssNewsSource source = new RssNewsSource("Slow RSS", url, 500);
+            assertThrows(IOException.class, source::fetch);
         } finally {
             server.stop(0);
         }
