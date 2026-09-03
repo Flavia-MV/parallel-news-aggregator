@@ -2,7 +2,7 @@
 
 A Java application for aggregating and processing articles from multiple news sources concurrently.
 
-The project focuses on **Java concurrency, modular design, failure handling, automated testing, and performance comparison between sequential and parallel execution**.
+The project focuses on **Java concurrency, modular design, failure handling, resilience, automated testing, and performance comparison between sequential and parallel execution**.
 
 ## Overview
 
@@ -14,6 +14,8 @@ The current implementation supports:
 * real RSS feeds through `RssNewsSource`;
 * concurrent processing of independent sources;
 * failure isolation between sources;
+* RSS retry with exponential backoff;
+* configurable per-source connection and read timeouts;
 * duplicate removal based on article URL;
 * sorting by publication time.
 
@@ -45,6 +47,7 @@ public interface NewsSource {
     String getName();
 
     ArrayList<Article> fetch() throws IOException;
+
 }
 ```
 
@@ -57,14 +60,14 @@ Currently, two implementations are available:
                      │
           ┌──────────┴──────────┐
           │                     │
- LocalFileSource          RssNewsSource
+   LocalFileSource        RssNewsSource
           │                     │
-      JSON files            RSS feed
+      JSON files             RSS feeds
 ```
 
 This makes it possible to introduce another source, such as an HTTP API, without changing `NewsAggregator`.
 
-For example, a future source could simply implement:
+For example:
 
 ```java
 public class ApiNewsSource implements NewsSource {
@@ -78,6 +81,7 @@ public class ApiNewsSource implements NewsSource {
     public ArrayList<Article> fetch() throws IOException {
         // Fetch and convert API data into Article objects
     }
+
 }
 ```
 
@@ -97,9 +101,17 @@ Local sources are useful for:
 
 ### `RssNewsSource`
 
-Fetches articles from a real RSS feed using the Rome RSS/Atom library.
+Fetches articles from real RSS feeds using the Rome RSS/Atom library.
 
 The RSS entries are converted into the common `Article` model, allowing RSS sources and local sources to be processed by the same aggregation pipeline.
+
+`RssNewsSource` also includes:
+
+* connection and read timeouts;
+* retry handling for failed requests;
+* exponential backoff between retry attempts.
+
+The default configuration allows up to three attempts with increasing delays between failures.
 
 ### `ArticleParser`
 
@@ -121,6 +133,8 @@ After processing the sources, the aggregator:
 2. handles failures from individual sources;
 3. removes duplicate articles;
 4. sorts the resulting articles by publication time.
+
+The aggregator also applies a global deadline to prevent the entire aggregation process from waiting indefinitely for slow sources.
 
 ## Concurrent Processing
 
@@ -147,18 +161,21 @@ This is useful when sources have different processing times because a fast sourc
 News Sources ───────┼── LocalFileSource ──┼──> Concurrent Processing
                     │                     │
                     └── RssNewsSource ────┘
-                                              │
-                                              ▼
+                                             │
+                                             ▼
+                                      Failure Handling
+                                             │
+                                             ▼
                                         Deduplication
-                                              │
-                                              ▼
+                                             │
+                                             ▼
                                            Sorting
-                                              │
-                                              ▼
+                                             │
+                                             ▼
                                       Final article list
 ```
 
-## Failure Handling
+## Failure Handling and Resilience
 
 A failure in one news source does not cause the entire aggregation process to fail.
 
@@ -174,7 +191,11 @@ The successfully retrieved articles are still returned.
 
 `IOException` raised while processing an individual source is captured and logged without preventing the remaining sources from being processed.
 
-This behavior is covered by automated tests using Mockito to simulate source failures.
+For RSS sources, failed requests are retried automatically with exponential backoff.
+
+Each RSS source also has a configurable connection and read timeout so that an unavailable or slow server does not block indefinitely.
+
+These behaviors are covered by automated tests using Mockito and a local HTTP server.
 
 ## Deduplication
 
@@ -213,7 +234,7 @@ This behavior is covered by automated tests.
 
 The project uses **JUnit 5** for automated testing and **Mockito** for mocking dependencies.
 
-The current test suite contains **13 tests** covering:
+The current test suite contains **15 tests** covering:
 
 * JSON parsing;
 * article field deserialization;
@@ -225,20 +246,22 @@ The current test suite contains **13 tests** covering:
 * aggregation with no sources;
 * sequential versus parallel processing;
 * RSS feed parsing;
-* RSS source connection failures.
+* RSS source connection failures;
+* RSS retry behavior;
+* RSS timeout behavior.
 
 The RSS tests use a local HTTP server instead of relying on an external website, making the tests deterministic and independent of internet availability.
 
 Run the complete test suite with:
 
 ```bash
-./mvnw test
+./mvnw clean test
 ```
 
 On Windows:
 
 ```powershell
-.\mvnw.cmd test
+.\mvnw.cmd clean test
 ```
 
 All tests currently pass.
@@ -265,6 +288,7 @@ The benchmark uses artificial delays and therefore does not represent production
 
 ```text
 parallel-news-aggregator/
+
 │
 ├── .github/
 │   └── workflows/
@@ -292,9 +316,6 @@ parallel-news-aggregator/
 │   │   │                   ├── LocalFileSource.java
 │   │   │                   ├── NewsSource.java
 │   │   │                   └── RssNewsSource.java
-│   │   │
-│   │   │   ├── Benchmark.java
-│   │   │   └── Main.java
 │   │   │
 │   │   └── resources/
 │   │       └── logback.xml
@@ -340,20 +361,26 @@ Maven does not need to be installed separately because the project includes the 
 On Windows:
 
 ```powershell
-.\mvnw.cmd test
+.\mvnw.cmd clean test
 ```
 
 On Linux/macOS:
 
 ```bash
-./mvnw test
+./mvnw clean test
 ```
 
 ### Run the Application
 
 Run `Main.java` from the IDE.
 
-The application currently combines local JSON fixtures with a real RSS feed and processes them through the same `NewsAggregator` pipeline.
+The current demo combines three local JSON fixtures with three real RSS sources:
+
+* BBC RSS;
+* The Guardian RSS;
+* Ars Technica RSS.
+
+All sources are processed through the same `NewsAggregator` pipeline.
 
 Example output:
 
@@ -378,9 +405,6 @@ The CI workflow uses Java 17 and Maven to verify that the project builds success
 
 Possible extensions include:
 
-* retry and exponential backoff for temporary RSS/network failures;
-* multiple real RSS sources;
-* configurable per-source timeouts;
 * configurable concurrency limits;
 * external application configuration;
 * improved benchmark methodology using real I/O workloads;
